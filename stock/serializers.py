@@ -9,6 +9,7 @@ class StockSerializer(serializers.ModelSerializer):
             "symbol",
             "company_name",
             "price",
+            "currency",
             "volume",
             "market_cap",
             "updated_at",

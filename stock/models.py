@@ -6,6 +6,7 @@ class Stock(models.Model):
     company_name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=12, decimal_places=2)
     volume = models.BigIntegerField(default=0)
+    currency = models.CharField(max_length=12,default = "USD")
     market_cap = models.DecimalField(
         max_digits=20,
         decimal_places=2,
