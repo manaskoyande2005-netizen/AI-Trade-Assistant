@@ -1,22 +1,31 @@
 import yfinance as yf
-from .models import Stock
+
+from .models import Stock, HistoricalPrice
+
 
 def get_stock_data(symbol):
     symbol = symbol.strip().upper()
+
     ticker = yf.Ticker(symbol)
 
     try:
         info = ticker.info
     except Exception:
-        raise ValueError(f"Invalid stock symbol: {symbol}")
+        raise ValueError(
+            f"Invalid stock symbol: {symbol}"
+        )
 
     if not info or not info.get("symbol"):
-        raise ValueError(f"Invalid stock symbol: {symbol}")
+        raise ValueError(
+            f"Invalid stock symbol: {symbol}"
+        )
 
     price = info.get("currentPrice")
 
     if price is None or price <= 0:
-        raise ValueError(f"Invalid stock symbol: {symbol}")
+        raise ValueError(
+            f"Invalid stock symbol: {symbol}"
+        )
 
     stock_data = {
         "symbol": symbol,
@@ -40,3 +49,45 @@ def get_stock_data(symbol):
 
     return stock
 
+
+def get_historical_data(symbol):
+    symbol = symbol.strip().upper()
+
+    try:
+        stock = Stock.objects.get(symbol=symbol)
+    except Stock.DoesNotExist:
+        raise ValueError(
+            f"Stock not found: {symbol}"
+        )
+
+    ticker = yf.Ticker(symbol)
+
+    try:
+        history = ticker.history(period="1y")
+    except Exception:
+        raise ValueError(
+            f"Unable to fetch historical data for: {symbol}"
+        )
+
+    if history.empty:
+        raise ValueError(
+            f"No historical data found for: {symbol}"
+        )
+
+    for date, row in history.iterrows():
+
+        HistoricalPrice.objects.update_or_create(
+            stock=stock,
+            date=date.date(),
+            defaults={
+                "open": row["Open"],
+                "high": row["High"],
+                "low": row["Low"],
+                "close": row["Close"],
+                "volume": row["Volume"],
+            },
+        )
+
+    return HistoricalPrice.objects.filter(
+        stock=stock
+    ).order_by("date")

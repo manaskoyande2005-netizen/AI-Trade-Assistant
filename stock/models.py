@@ -17,3 +17,17 @@ class Stock(models.Model):
 
     def __str__(self):
         return self.symbol
+    
+class HistoricalPrice(models.Model):
+    stock = models.ForeignKey(
+        Stock,
+        on_delete=models.CASCADE,
+        related_name="historical_prices"
+    )
+    date = models.DateField()
+    open = models.DecimalField(max_digits=12, decimal_places=2)
+    high = models.DecimalField(max_digits=12, decimal_places=2)
+    low = models.DecimalField(max_digits=12, decimal_places=2)
+    close = models.DecimalField(max_digits=12, decimal_places=2)
+    volume = models.BigIntegerField()
+    

@@ -1,5 +1,6 @@
+
 from rest_framework import serializers
-from .models import Stock
+from .models import Stock, HistoricalPrice
 
 
 class StockSerializer(serializers.ModelSerializer):
@@ -13,4 +14,17 @@ class StockSerializer(serializers.ModelSerializer):
             "volume",
             "market_cap",
             "updated_at",
+        ]
+
+
+class HistoricalPriceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HistoricalPrice
+        fields = [
+            "date",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
         ]
