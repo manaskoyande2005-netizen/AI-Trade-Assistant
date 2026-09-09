@@ -1,5 +1,4 @@
 import yfinance as yf
-
 from .models import Stock, HistoricalPrice
 
 
@@ -91,3 +90,30 @@ def get_historical_data(symbol):
     return HistoricalPrice.objects.filter(
         stock=stock
     ).order_by("date")
+
+def calculate_sma(symbol, window=20):
+    symbol = symbol.strip().upper()
+
+    try:
+        stock = Stock.objects.get(symbol=symbol)
+    except Stock.DoesNotExist:
+        raise ValueError(f"Stock not found: {symbol}")
+
+    history = HistoricalPrice.objects.filter(
+        stock=stock
+    ).order_by("date")
+
+    if history.count() < window:
+        raise ValueError(
+            f"Not enough historical data for {window}-day SMA"
+        )
+
+    prices = [float(item.close) for item in history]
+
+    sma = sum(prices[-window:]) / window
+
+    return {
+        "symbol": symbol,
+        "indicator": f"SMA_{window}",
+        "value": round(sma, 2)
+    }

@@ -1,7 +1,11 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-
+from .services import (
+    get_stock_data,
+    get_historical_data,
+    calculate_sma
+)
 from .models import Stock, HistoricalPrice
 from .services import get_stock_data, get_historical_data
 from .serializers import StockSerializer, HistoricalPriceSerializer
@@ -86,3 +90,32 @@ def stock_history(request, symbol):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
     
+@api_view(["GET"])
+def stock_sma(request, symbol):
+    try:
+        window = int(request.GET.get("window", 20))
+
+        if window <= 0:
+            return Response(
+                {"error": "Window must be greater than 0"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        result = calculate_sma(symbol, window)
+
+        return Response(
+            result,
+            status=status.HTTP_200_OK
+        )
+
+    except ValueError as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    except Exception:
+        return Response(
+            {"error": "Internal server error"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
