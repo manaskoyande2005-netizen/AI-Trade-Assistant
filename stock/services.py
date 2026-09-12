@@ -1,7 +1,6 @@
 import yfinance as yf
 from .models import Stock, HistoricalPrice
 
-
 def get_stock_data(symbol):
     symbol = symbol.strip().upper()
 
@@ -74,7 +73,6 @@ def get_historical_data(symbol):
         )
 
     for date, row in history.iterrows():
-
         HistoricalPrice.objects.update_or_create(
             stock=stock,
             date=date.date(),
@@ -91,13 +89,16 @@ def get_historical_data(symbol):
         stock=stock
     ).order_by("date")
 
+
 def calculate_sma(symbol, window=20):
     symbol = symbol.strip().upper()
 
     try:
         stock = Stock.objects.get(symbol=symbol)
     except Stock.DoesNotExist:
-        raise ValueError(f"Stock not found: {symbol}")
+        raise ValueError(
+            f"Stock not found: {symbol}"
+        )
 
     history = HistoricalPrice.objects.filter(
         stock=stock
@@ -110,10 +111,23 @@ def calculate_sma(symbol, window=20):
 
     prices = [float(item.close) for item in history]
 
-    sma = sum(prices[-window:]) / window
+    sma_values = []
+
+    for i in range(window - 1, len(prices)):
+        window_prices = prices[
+            i - window + 1:i + 1
+        ]
+
+        sma = sum(window_prices) / window
+
+        sma_values.append({
+            "date": history[i].date,
+            "close": prices[i],
+            "sma": round(sma, 2)
+        })
 
     return {
         "symbol": symbol,
         "indicator": f"SMA_{window}",
-        "value": round(sma, 2)
+        "data": sma_values
     }

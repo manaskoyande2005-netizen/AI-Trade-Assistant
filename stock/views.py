@@ -1,14 +1,17 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+
+from .models import Stock
 from .services import (
     get_stock_data,
     get_historical_data,
     calculate_sma
 )
-from .models import Stock, HistoricalPrice
-from .services import get_stock_data, get_historical_data
-from .serializers import StockSerializer, HistoricalPriceSerializer
+from .serializers import (
+    StockSerializer,
+    HistoricalPriceSerializer
+)
 
 
 @api_view(["GET"])
@@ -46,10 +49,9 @@ def stock_search(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    stocks = Stock.objects.filter(
-        company_name__icontains=q
-    ) | Stock.objects.filter(
-        symbol__icontains=q
+    stocks = (
+        Stock.objects.filter(company_name__icontains=q)
+        | Stock.objects.filter(symbol__icontains=q)
     )
 
     serializer = StockSerializer(
@@ -89,7 +91,8 @@ def stock_history(request, symbol):
             {"error": "Internal server error"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-    
+
+
 @api_view(["GET"])
 def stock_sma(request, symbol):
     try:
@@ -119,3 +122,4 @@ def stock_sma(request, symbol):
             {"error": "Internal server error"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
