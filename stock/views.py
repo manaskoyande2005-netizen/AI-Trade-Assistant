@@ -161,3 +161,41 @@ def stock_ema(request, symbol):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+from .services import (
+    get_stock_data,
+    get_historical_data,
+    calculate_sma,
+    calculate_ema,
+    calculate_rsi
+)
+
+
+@api_view(["GET"])
+def stock_rsi(request, symbol):
+    try:
+        window = int(request.GET.get("window", 14))
+
+        if window <= 0:
+            return Response(
+                {"error": "Window must be greater than 0"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        result = calculate_rsi(symbol, window)
+
+        return Response(
+            result,
+            status=status.HTTP_200_OK
+        )
+
+    except ValueError as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    except Exception:
+        return Response(
+            {"error": "Internal server error"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

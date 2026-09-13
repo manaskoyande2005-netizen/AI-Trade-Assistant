@@ -187,3 +187,84 @@ def calculate_ema(symbol, window=20):
         "indicator": f"EMA_{window}",
         "data": ema_values
     }
+
+def calculate_rsi(symbol, window=14):
+    symbol = symbol.strip().upper()
+
+    try:
+        stock = Stock.objects.get(symbol=symbol)
+    except Stock.DoesNotExist:
+        raise ValueError(
+            f"Stock not found: {symbol}"
+        )
+
+    history = HistoricalPrice.objects.filter(
+        stock=stock
+    ).order_by("date")
+
+    if history.count() <= window:
+        raise ValueError(
+            f"Not enough historical data for {window}-day RSI"
+        )
+
+    prices = [float(item.close) for item in history]
+
+    gains = []
+    losses = []
+
+    for i in range(1, len(prices)):
+        change = prices[i] - prices[i - 1]
+
+        if change > 0:
+            gains.append(change)
+            losses.append(0)
+
+        else:
+            gains.append(0)
+            losses.append(abs(change))
+
+    rsi_values = []
+
+    average_gain = sum(gains[:window]) / window
+    average_loss = sum(losses[:window]) / window
+
+    if average_loss == 0:
+        rsi = 100
+    else:
+        rs = average_gain / average_loss
+        rsi = 100 - (100 / (1 + rs))
+
+    rsi_values.append({
+        "date": history[window].date(),
+        "close": prices[window],
+        "rsi": round(rsi, 2)
+    })
+
+    # Calculate remaining RSI values
+    for i in range(window, len(gains)):
+        average_gain = (
+            (average_gain * (window - 1)) + gains[i]
+        ) / window
+
+        average_loss = (
+            (average_loss * (window - 1)) + losses[i]
+        ) / window
+
+        if average_loss == 0:
+            rsi = 100
+        else:
+            rs = average_gain / average_loss
+            rsi = 100 - (100 / (1 + rs))
+
+        rsi_values.append({
+            "date": history[i + 1].date(),
+            "close": prices[i + 1],
+            "rsi": round(rsi, 2)
+        })
+
+    return {
+        "symbol": symbol,
+        "indicator": f"RSI_{window}",
+        "data": rsi_values
+    }
+
