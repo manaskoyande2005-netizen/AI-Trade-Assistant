@@ -5,5 +5,7 @@ urlpatterns = [
     path ("search/",views.stock_search),
     path ("<str:symbol>/history/",views.stock_history ),
     path("<str:symbol>/sma/", views.stock_sma),
+    path("<str:symbol>/ema/", views.stock_ema),
+  
     path("<str:symbol>/", views.stock_detail),
 ]

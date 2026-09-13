@@ -131,3 +131,59 @@ def calculate_sma(symbol, window=20):
         "indicator": f"SMA_{window}",
         "data": sma_values
     }
+def calculate_ema(symbol, window=20):
+    symbol = symbol.strip().upper()
+
+    try:
+        stock = Stock.objects.get(symbol=symbol)
+    except Stock.DoesNotExist:
+        raise ValueError(
+            f"Stock not found: {symbol}"
+        )
+
+    history = HistoricalPrice.objects.filter(
+        stock=stock
+    ).order_by("date")
+
+    if history.count() < window:
+        raise ValueError(
+            f"Not enough historical data for {window}-day EMA"
+        )
+
+    prices = [float(item.close) for item in history]
+
+    multiplier = 2 / (window + 1)
+
+    ema_values = []
+
+    first_ema = sum(prices[:window]) / window
+
+    ema_values.append({
+        "date": history[window - 1].date,
+        "close": prices[window - 1],
+        "ema": round(first_ema, 2)
+    })
+
+    previous_ema = first_ema
+
+    for i in range(window, len(prices)):
+        current_price = prices[i]
+
+        current_ema = (
+            (current_price * multiplier)
+            + (previous_ema * (1 - multiplier))
+        )
+
+        ema_values.append({
+            "date": history[i].date,
+            "close": current_price,
+            "ema": round(current_ema, 2)
+        })
+
+        previous_ema = current_ema
+
+    return {
+        "symbol": symbol,
+        "indicator": f"EMA_{window}",
+        "data": ema_values
+    }
