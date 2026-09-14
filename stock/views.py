@@ -6,8 +6,12 @@ from .models import Stock
 from .services import (
     get_stock_data,
     get_historical_data,
-    calculate_sma
+    calculate_sma,
+    calculate_ema,
+    calculate_rsi,
+    calculate_macd
 )
+
 from .serializers import (
     StockSerializer,
     HistoricalPriceSerializer
@@ -32,9 +36,9 @@ def stock_detail(request, symbol):
             status=status.HTTP_404_NOT_FOUND
         )
 
-    except Exception:
+    except Exception as e:
         return Response(
-            {"error": "Internal server error"},
+            {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -86,9 +90,9 @@ def stock_history(request, symbol):
             status=status.HTTP_404_NOT_FOUND
         )
 
-    except Exception:
+    except Exception as e:
         return Response(
-            {"error": "Internal server error"},
+            {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -117,18 +121,11 @@ def stock_sma(request, symbol):
             status=status.HTTP_404_NOT_FOUND
         )
 
-    except Exception:
+    except Exception as e:
         return Response(
-            {"error": "Internal server error"},
+            {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
-from .services import (
-    get_stock_data,
-    get_historical_data,
-    calculate_sma,
-    calculate_ema
-)
 
 
 @api_view(["GET"])
@@ -155,19 +152,11 @@ def stock_ema(request, symbol):
             status=status.HTTP_404_NOT_FOUND
         )
 
-    except Exception:
+    except Exception as e:
         return Response(
-            {"error": "Internal server error"},
+            {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
-from .services import (
-    get_stock_data,
-    get_historical_data,
-    calculate_sma,
-    calculate_ema,
-    calculate_rsi
-)
 
 
 @api_view(["GET"])
@@ -194,8 +183,31 @@ def stock_rsi(request, symbol):
             status=status.HTTP_404_NOT_FOUND
         )
 
-    except Exception:
+    except Exception as e:
         return Response(
-            {"error": "Internal server error"},
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(["GET"])
+def stock_macd(request, symbol):
+    try:
+        result = calculate_macd(symbol)
+
+        return Response(
+            result,
+            status=status.HTTP_200_OK
+        )
+
+    except ValueError as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

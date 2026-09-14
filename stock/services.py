@@ -240,7 +240,6 @@ def calculate_rsi(symbol, window=14):
         "rsi": round(rsi, 2)
     })
 
-    # Calculate remaining RSI values
     for i in range(window, len(gains)):
         average_gain = (
             (average_gain * (window - 1)) + gains[i]
@@ -268,3 +267,118 @@ def calculate_rsi(symbol, window=14):
         "data": rsi_values
     }
 
+def calculate_macd(symbol):
+    symbol = symbol.strip().upper()
+
+    try:
+        stock = Stock.objects.get(symbol=symbol)
+    except Stock.DoesNotExist:
+        raise ValueError(
+            f"Stock not found: {symbol}"
+        )
+
+    history = HistoricalPrice.objects.filter(
+        stock=stock
+    ).order_by("date")
+
+    if history.count() < 26:
+        raise ValueError(
+            "Not enough historical data for MACD"
+        )
+
+    prices = [float(item.close) for item in history]
+
+ 
+    multiplier_12 = 2 / (12 + 1)
+
+    ema_12 = []
+    first_ema_12 = sum(prices[:12]) / 12
+    ema_12.append(first_ema_12)
+
+    previous_ema = first_ema_12
+
+    for price in prices[12:]:
+        current_ema = (
+            (price * multiplier_12)
+            + (previous_ema * (1 - multiplier_12))
+        )
+
+        ema_12.append(current_ema)
+        previous_ema = current_ema
+
+    multiplier_26 = 2 / (26 + 1)
+
+    ema_26 = []
+    first_ema_26 = sum(prices[:26]) / 26
+    ema_26.append(first_ema_26)
+
+    previous_ema = first_ema_26
+
+    for price in prices[26:]:
+        current_ema = (
+            (price * multiplier_26)
+            + (previous_ema * (1 - multiplier_26))
+        )
+
+        ema_26.append(current_ema)
+        previous_ema = current_ema
+
+    ema_12_aligned = ema_12[14:]
+
+    macd_values = []
+
+    for i in range(len(ema_26)):
+        macd = ema_12_aligned[i] - ema_26[i]
+
+        macd_values.append({
+            "date": history[i + 25].date,
+            "macd": round(macd, 2)
+        })
+
+   
+    if len(macd_values) < 9:
+        raise ValueError(
+            "Not enough data for MACD signal line"
+        )
+
+    macd_prices = [
+        item["macd"] for item in macd_values
+    ]
+
+    multiplier_signal = 2 / (9 + 1)
+
+    first_signal = sum(macd_prices[:9]) / 9
+
+    macd_values[8]["signal"] = round(first_signal, 2)
+    macd_values[8]["histogram"] = round(
+        macd_prices[8] - first_signal,
+        2
+    )
+
+    previous_signal = first_signal
+
+    for i in range(9, len(macd_prices)):
+        current_signal = (
+            (macd_prices[i] * multiplier_signal)
+            + (previous_signal * (1 - multiplier_signal))
+        )
+
+        macd_values[i]["signal"] = round(
+            current_signal,
+            2
+        )
+
+        macd_values[i]["histogram"] = round(
+            macd_prices[i] - current_signal,
+            2
+        )
+
+        previous_signal = current_signal
+
+    macd_values = macd_values[8:]
+
+    return {
+        "symbol": symbol,
+        "indicator": "MACD",
+        "data": macd_values
+    }
