@@ -382,3 +382,61 @@ def calculate_macd(symbol):
         "indicator": "MACD",
         "data": macd_values
     }
+def calculate_bollinger_bands(symbol, window=20, num_std=2):
+    symbol = symbol.strip().upper()
+
+    try:
+        stock = Stock.objects.get(symbol=symbol)
+    except Stock.DoesNotExist:
+        raise ValueError(
+            f"Stock not found: {symbol}"
+        )
+
+    history = HistoricalPrice.objects.filter(
+        stock=stock
+    ).order_by("date")
+
+    if history.count() < window:
+        raise ValueError(
+            f"Not enough historical data for {window}-day Bollinger Bands"
+        )
+
+    prices = [float(item.close) for item in history]
+
+    bollinger_values = []
+
+    for i in range(window - 1, len(prices)):
+
+        window_prices = prices[i - window + 1:i + 1]
+
+        sma = sum(window_prices) / window
+
+        variance = sum(
+            (price - sma) ** 2
+            for price in window_prices
+        ) / window
+
+        standard_deviation = variance ** 0.5
+
+        # Bollinger Bands
+        upper_band = sma + (
+            num_std * standard_deviation
+        )
+
+        lower_band = sma - (
+            num_std * standard_deviation
+        )
+
+        bollinger_values.append({
+            "date": history[i].date,
+            "close": prices[i],
+            "middle_band": round(sma, 2),
+            "upper_band": round(upper_band, 2),
+            "lower_band": round(lower_band, 2)
+        })
+
+    return {
+        "symbol": symbol,
+        "indicator": f"BOLLINGER_BANDS_{window}",
+        "data": bollinger_values
+    }
