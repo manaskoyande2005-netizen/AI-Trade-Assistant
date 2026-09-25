@@ -440,3 +440,70 @@ def calculate_bollinger_bands(symbol, window=20, num_std=2):
         "indicator": f"BOLLINGER_BANDS_{window}",
         "data": bollinger_values
     }
+import pandas as pd 
+def create_ml_dataset ( symbol):
+    stock = Stock.objects.get(symbol=symbol)
+    history = HistoricalPrice.objects.filter(stock = stock)
+    data = history.values (
+        "date","open","high","low","close","volume"
+    )
+    df = pd.DataFrame(data)
+    df["tomorrow_close"] = df["close"].shift(-1)
+
+    df["target"] = (
+    df["tomorrow_close"] > df["close"]
+     ).astype(int)
+    df["sma20"] = df["close"].rolling(window=20).mean()
+    df["ema20"] = df["close"].ewm(span=20, adjust=False).mean()
+    delta = df["close"].diff()
+
+    gain = delta.clip(lower=0)
+    loss =-delta.clip(upper=0)
+
+    average_gain = gain.rolling(window=14).mean()
+    average_loss = loss.rolling(window=14).mean()
+
+    rs = average_gain / average_loss
+
+    df["rsi14"] = 100 - (100 / (1 + rs))
+    ema12 = df["close"].ewm(span=12, adjust=False).mean()
+    ema26 = df["close"].ewm(span=26, adjust=False).mean()
+
+    df["macd"] = ema12 - ema26
+    rolling_mean = df["close"].rolling(window=20).mean()
+    rolling_std = df["close"].rolling(window=20).std()
+
+    df["bb_middle"] = rolling_mean
+    df["bb_upper"] = rolling_mean + (2 * rolling_std)
+    df["bb_lower"] = rolling_mean - (2 * rolling_std)
+    df = df.dropna()
+    features = [
+    "sma20",
+    "ema20",
+    "rsi14",
+    "macd",
+    "bb_middle",
+    "bb_upper",
+    "bb_lower",
+    "volume"
+]
+
+    X = df[features]
+    y = df["target"]
+    print(df.head())
+    print(df.shape)
+  
+
+    from sklearn.model_selection import train_test_split
+    X_train, X_test, y_train, y_test = train_test_split(
+      X,
+      y,
+     test_size=0.2,
+     shuffle=False
+)
+    from sklearn.linear_model import LogisticRegression
+    model = LogisticRegression(max_iter=1000)
+    model.fit(X_train, y_train) 
+    prediction = model.predict(X_test)
+    print(prediction)
+    return df
